@@ -1,52 +1,63 @@
-# test_login_saucedemo.py
+from time import sleep
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-import pytest
-import time
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-# URL base do sistema
-URL = "https://www.saucedemo.com/v1/"
-USUARIO_VALIDO = "standard_user"
-SENHA_VALIDA = "secret_sauce"
+class TestLogin:
+    def setup_method(self, method):
+        chrome_options = Options()
+        chrome_options.add_argument("--disable-infobars")
+        chrome_options.add_argument("--disable-extensions")
+        chrome_options.add_argument("--incognito")
+        chrome_options.add_experimental_option("prefs", {
+            "credentials_enable_service": False,
+            "profile.password_manager_enabled": False
+        })
+        self.driver = webdriver.Chrome(options=chrome_options)
+        self.driver.maximize_window()
+        self.driver.get("https://www.saucedemo.com/")
+        WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.ID, "login-button"))
+        )
 
-@pytest.fixture
-def driver():
-    driver = webdriver.Chrome()
-    driver.get(URL)
-    driver.maximize_window()
-    time.sleep(2)  # Espera após abrir o navegador
-    yield driver
-    time.sleep(2)  # Espera antes de fechar o navegador
-    driver.quit()
+    def teardown_method(self, method):
+        self.driver.quit()
 
-def realizar_login(driver, username, password):
-    time.sleep(1)  # Espera antes de começar a digitar
-    driver.find_element(By.ID, "user-name").send_keys(username)
-    time.sleep(1)
-    driver.find_element(By.ID, "password").send_keys(password)
-    time.sleep(1)
-    driver.find_element(By.ID, "login-button").click()
-    time.sleep(2)  # Espera para carregar o resultado do login
+    def realizar_login(self, username, password):
+        sleep(1)
+        self.driver.find_element(By.ID, "user-name").send_keys(username)
+        sleep(1)
+        self.driver.find_element(By.ID, "password").send_keys(password)
+        sleep(1)
+        self.driver.find_element(By.ID, "login-button").click()
+        sleep(2)
 
-def test_login_com_credenciais_validas(driver):
-    realizar_login(driver, USUARIO_VALIDO, SENHA_VALIDA)
-    assert "inventory" in driver.current_url, "Login falhou com credenciais válidas"
-    time.sleep(2)
+    def test_login_com_credenciais_validas(self):
+        self.realizar_login("standard_user", "secret_sauce")
+        WebDriverWait(self.driver, 10).until(
+            EC.url_contains("inventory")
+        )
+        assert "inventory" in self.driver.current_url
 
-def test_login_com_usuario_incorreto(driver):
-    realizar_login(driver, "usuario_errado", SENHA_VALIDA)
-    mensagem_erro = driver.find_element(By.CSS_SELECTOR, "h3[data-test='error']").text
-    assert "Username and password do not match" in mensagem_erro or "do not match" in mensagem_erro
-    time.sleep(2)
+    def test_login_com_usuario_incorreto(self):
+        self.realizar_login("usuario_errado", "secret_sauce")
+        mensagem_erro = WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, "h3[data-test='error']"))
+        ).text
+        assert "Username and password do not match" in mensagem_erro or "do not match" in mensagem_erro
 
-def test_login_com_senha_incorreta(driver):
-    realizar_login(driver, USUARIO_VALIDO, "senha_errada")
-    mensagem_erro = driver.find_element(By.CSS_SELECTOR, "h3[data-test='error']").text
-    assert "Username and password do not match" in mensagem_erro or "do not match" in mensagem_erro
-    time.sleep(2)
+    def test_login_com_senha_incorreta(self):
+        self.realizar_login("standard_user", "senha_errada")
+        mensagem_erro = WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, "h3[data-test='error']"))
+        ).text
+        assert "Username and password do not match" in mensagem_erro or "do not match" in mensagem_erro
 
-def test_login_com_usuario_e_senha_incorretos(driver):
-    realizar_login(driver, "usuario_errado", "senha_errada")
-    mensagem_erro = driver.find_element(By.CSS_SELECTOR, "h3[data-test='error']").text
-    assert "Username and password do not match" in mensagem_erro or "do not match" in mensagem_erro
-    time.sleep(2)
+    def test_login_com_usuario_e_senha_incorretos(self):
+        self.realizar_login("usuario_errado", "senha_errada")
+        mensagem_erro = WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, "h3[data-test='error']"))
+        ).text
+        assert "Username and password do not match" in mensagem_erro or "do not match" in mensagem_erro
